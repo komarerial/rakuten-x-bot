@@ -1,0 +1,38 @@
+name: Rakuten Affiliate Bot
+
+on:
+  schedule:
+    - cron: "0,30 * * * *"  # 30分ごと（UTC基準。日本時間 = UTC+9）
+  workflow_dispatch:          # GitHub UI から手動実行も可能
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run bot
+        env:
+          RAKUTEN_APP_ID:        ${{ secrets.RAKUTEN_APP_ID }}
+          RAKUTEN_AFFILIATE_ID:  ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          RAKUTEN_ACCESS_KEY:    ${{ secrets.RAKUTEN_ACCESS_KEY }}
+          TWITTER_USERNAME:      ${{ secrets.TWITTER_USERNAME }}
+          TWITTER_PASSWORD:      ${{ secrets.TWITTER_PASSWORD }}
+          TWITTER_EMAIL:         ${{ secrets.TWITTER_EMAIL }}
+          COOKIES_JSON:          ${{ secrets.COOKIES_JSON }}
+        run: python bot.py

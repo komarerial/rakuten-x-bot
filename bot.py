@@ -18,6 +18,7 @@ TWITTER_PASSWORD = os.environ.get("TWITTER_PASSWORD", "")
 TWITTER_EMAIL    = os.environ.get("TWITTER_EMAIL", "")
 
 COOKIES_FILE = Path("cookies.json")
+HUMAN_TWEETS_FILE = Path("tweets.json")
 
 # --- GitHub Secrets の COOKIES_JSON からクッキーファイルを復元 ---
 _cookies_json_env = os.environ.get("COOKIES_JSON", "")
@@ -250,20 +251,35 @@ def post_to_twitter(text: str) -> None:
         browser.close()
 
 
+def post_human_tweet() -> None:
+    """tweets.json からランダムに1件選んで日常ツイートを投稿する"""
+    tweets: list[str] = json.loads(HUMAN_TWEETS_FILE.read_text(encoding="utf-8"))
+    text = random.choice(tweets)
+    print(f"[INFO] 日常投稿:\n{text}")
+    post_to_twitter(text)
+
+
 def main():
+    # 60% の確率でアフィリエイト投稿、40% で日常投稿（機械的に見えないようにランダム振り分け）
+    post_type = random.choices(["affiliate", "human"], weights=[60, 40], k=1)[0]
+    print(f"[INFO] 今回の投稿タイプ: {post_type}")
+
+    if post_type == "human":
+        post_human_tweet()
+        return
+
     config = random.choice(KEYWORD_CONFIG)
     print(f"[INFO] 検索キーワード: {config['keyword']}")
 
     item = fetch_rakuten_item(config)
     if not item:
-        print("[INFO] 投稿対象の商品がないため終了します")
+        print("[INFO] 投稿対象の商品がないため、日常投稿に切り替えます")
+        post_human_tweet()
         return
 
     print(f"[INFO] 投稿対象: {item['name']} / {item['price']}円")
-
     tweet_text = build_tweet(item)
     print(f"[INFO] 投稿文:\n{tweet_text}")
-
     post_to_twitter(tweet_text)
 
 

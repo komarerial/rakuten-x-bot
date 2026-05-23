@@ -2,8 +2,9 @@ name: Rakuten Affiliate Bot
 
 on:
   schedule:
-    - cron: "0,30 * * * *"  # 30分ごと（UTC基準。日本時間 = UTC+9）
-  workflow_dispatch:          # GitHub UI から手動実行も可能
+    # 1日3回（日本時間 09:00 / 15:00 / 21:00）UTC基準: 0:00 / 6:00 / 12:00
+    - cron: "0 0,6,12 * * *"
+  workflow_dispatch:  # GitHub UI から手動実行も可能
 
 jobs:
   run-bot:

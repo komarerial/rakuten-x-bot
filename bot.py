@@ -109,15 +109,12 @@ def build_tweet(item: dict) -> str:
     """投稿文を生成する"""
     name  = item["name"][:40] + "…" if len(item["name"]) > 40 else item["name"]
     price = f"{item['price']:,}"
-    url   = item["url"]
     tags  = item["hashtags"]
 
     return (
         f"🚨入荷速報🚨\n"
         f"【{name}】が楽天に入荷・販売中！\n"
         f"💰価格: {price}円\n\n"
-        f"👇購入はこちらから（早い者勝ち！）\n"
-        f"{url}\n\n"
         f"{tags}"
     )
 
@@ -193,8 +190,10 @@ def post_to_twitter(text: str) -> None:
         )
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        headless = os.environ.get("CI", "false").lower() == "true"
+        browser = p.chromium.launch(headless=headless)
         context = browser.new_context()
+        context.grant_permissions(["clipboard-read", "clipboard-write"])
         context.add_cookies(_load_cookies())
 
         page = context.new_page()
@@ -210,20 +209,22 @@ def post_to_twitter(text: str) -> None:
             page.goto("https://x.com/compose/post", wait_until="domcontentloaded")
             page.wait_for_selector('[data-testid="tweetTextarea_0"]', timeout=15000)
 
-        # テキストエリアに投稿文を入力
+        # テキストエリアにクリップボード経由で投稿文を貼り付け
         textarea = page.locator('div[role="textbox"][data-testid="tweetTextarea_0"]').first
         textarea.click()
-        page.keyboard.type(text)
+        page.evaluate("async (t) => { await navigator.clipboard.writeText(t); }", text)
+        textarea.focus()
+        page.keyboard.press("Control+V")
 
-        # 投稿ボタンをクリック（X側のJSがボタンを有効化するまで1秒待機）
-        page.wait_for_timeout(1000)
+        # 投稿ボタンをクリック（X側のJSがボタンを有効化するまで1.5秒待機）
+        page.wait_for_timeout(1500)
         post_btn = page.get_by_test_id("tweetButton")
         if not post_btn.is_visible():
             post_btn = page.get_by_role("button", name="ポストする")
         post_btn.click(force=True)
 
-        # 投稿完了を確認（3秒待機後にホーム画面またはURLで成功判定）
-        page.wait_for_timeout(3000)
+        # 投稿完了を目視確認（5秒待機してエラー表示や遷移先を画面で確認）
+        page.wait_for_timeout(5000)
 
         # エラーポップアップの検出
         error_selectors = [

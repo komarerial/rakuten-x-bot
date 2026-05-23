@@ -2,8 +2,7 @@ name: Rakuten Affiliate Bot
 
 on:
   schedule:
-    # 1日3回（日本時間 09:00 / 15:00 / 21:00）UTC基準: 0:00 / 6:00 / 12:00
-    - cron: "0 0,6,12 * * *"
+    - cron: "0 */3 * * *"  # 3時間おきに実行
   workflow_dispatch:  # GitHub UI から手動実行も可能
 
 jobs:
@@ -26,6 +25,11 @@ jobs:
 
       - name: Install Playwright Chromium
         run: python -m playwright install --with-deps chromium
+
+      - name: Restore cookies.json from secret
+        env:
+          COOKIES_JSON: ${{ secrets.COOKIES_JSON }}
+        run: echo "$COOKIES_JSON" > cookies.json
 
       - name: Run bot
         env:

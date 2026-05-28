@@ -1,8 +1,13 @@
 # 機密情報
 .env
 cookies.json
+auth.json
 
-# Python
+# ランタイム生成ファイル
+last_run.json
+
+# ローカル開発用
+chrome_profile/
 __pycache__/
 *.py[cod]
 *.pyo
